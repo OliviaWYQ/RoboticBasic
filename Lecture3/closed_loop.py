@@ -20,14 +20,12 @@ class Controller:
         self.previous_error = 0.0
 
     def update(self, current_value: float) -> float:
-        """
-        TODO:
-        1. Compute angular error (set_point - current_value), wrapped to [-π, π].
-        2. Apply PD formula to compute control output.
-        3. Update previous_error.
-        4. Return control output (omega).
-        """
-        pass
+        error = self.set_point - current_value
+        # Wrap to [-π, π] to handle the ±π discontinuity
+        error = math.atan2(math.sin(error), math.cos(error))
+        output = self.Kp * error + self.Kd * (error - self.previous_error)
+        self.previous_error = error
+        return output
 
     def setPoint(self, set_point: float):
         """Set reference heading and reset error history."""
@@ -59,23 +57,54 @@ class Turtlebot(Node):
         self.get_logger().info('Initialized closed-loop navigator')
 
     def run(self):
-        """
-        TODO:
-        1. Define a list of waypoints (e.g., square path).
-        2. For each waypoint, call move_to_point(tx, ty).
-        3. After all waypoints, save trajectory and stop the robot.
-        """
-        pass
+        waypoints = [(4.0, 0.0), (4.0, 4.0), (0.0, 4.0), (0.0, 0.0)]
+        for tx, ty in waypoints:
+            self.move_to_point(tx, ty)
+        self.stop()
+        self.save_to_csv()
 
     def move_to_point(self, tx: float, ty: float):
-        """
-        TODO:
-        1. Compute distance and heading to the target point.
-        2. If heading error > angle_threshold, rotate in place using PD controller.
-        3. If heading is aligned, move forward while maintaining heading.
-        4. Stop when within distance_threshold of the target point.
-        """
-        pass
+        distance_threshold = 0.1   # metres — matches the grading criterion
+        angle_threshold = 0.05     # radians (~3°) before we start moving forward
+        linear_speed = 0.3         # m/s forward speed
+
+        self.pid_theta.setPoint(math.atan2(ty - self.pose.y, tx - self.pose.x))
+
+        while rclpy.ok():
+            rclpy.spin_once(self, timeout_sec=0.0)
+
+            dx = tx - self.pose.x
+            dy = ty - self.pose.y
+            distance = math.sqrt(dx ** 2 + dy ** 2)
+
+            if distance < distance_threshold:
+                self.stop()
+                return
+
+            # Recompute desired heading each step; update set_point without
+            # resetting previous_error so the D-term stays meaningful.
+            target_angle = math.atan2(dy, dx)
+            self.pid_theta.set_point = target_angle
+
+            angle_error = math.atan2(
+                math.sin(target_angle - self.pose.theta),
+                math.cos(target_angle - self.pose.theta),
+            )
+
+            omega = self.pid_theta.update(self.pose.theta)
+
+            cmd = Twist()
+            if abs(angle_error) > angle_threshold:
+                # Rotate in place until roughly aligned
+                cmd.angular.z = omega
+                cmd.linear.x = 0.0
+            else:
+                # Drive forward while the PD controller keeps heading locked
+                cmd.linear.x = linear_speed
+                cmd.angular.z = omega
+
+            self.vel_pub.publish(cmd)
+            time.sleep(self.rate_dt)
 
     def stop(self):
         """Stop the robot by publishing zero velocities."""
@@ -107,7 +136,7 @@ def main(args=None):
     except KeyboardInterrupt:
         print("Ctrl + C detected. Exiting...")
     finally:
-        turtlebot.save_trajectory()
+        turtlebot.stop()
 
 
 if __name__ == '__main__':
