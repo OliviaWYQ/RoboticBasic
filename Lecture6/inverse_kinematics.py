@@ -1,19 +1,11 @@
-import numpy as np
-from math import pi, cos, sin, atan, atan2, sqrt, acos
-import sympy as sym
+"""Compatibility entry point used by test_inverse_kinematics.py.
 
-def inverse_kinematics(position):
-    # input: the position of end effector [x, y, z]
-    # output: joint angles [joint1, joint2, joint3]
-    # add your code here to complete the computation
+The lab submission contains separate analytic and numerical implementations.
+The supplied test node imports this original module name, so it uses the
+analytic implementation by default.
+"""
 
-    link1z = 0.065
-    link2z = 0.039
-    link3x = 0.050
-    link3z = 0.150
-    link4x = 0.150
-    x = position[0]
-    y = position[1]
-    z = position[2]
+from inverse_kinematics_analytic import inverse_kinematics
 
-    return [joint1, joint2, joint3]
+
+__all__ = ["inverse_kinematics"]
