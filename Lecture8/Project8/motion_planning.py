@@ -5,7 +5,7 @@ from itertools import count
 
 
 # 四连通网格中只允许上、下、左、右移动，不允许沿对角线移动。
-_DIRECTIONS = ((1, 0), (0, 1), (-1, 0), (0, -1))
+_DIRECTIONS = ((-1, 0), (0, 1), (1, 0), (0, -1))
 
 
 def _manhattan_distance(point, goal):
