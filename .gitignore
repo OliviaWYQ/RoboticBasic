@@ -4,3 +4,5 @@ __pycache__/
 *.pyc
 tmp/
 .workbuddy
+Lecture7/Project7/*.webm
+*.webm
