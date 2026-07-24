@@ -183,4 +183,10 @@ def inverse_kinematics(position):
     if error > 1.0e-6:
         raise ValueError(f"numerical IK did not converge (position error {error:.3g} m)")
 
-    return [float(value) for value in _wrap_to_pi(angles)]
+    # 内部 FK 模型将 shoulder/elbow 视为绕 -Y 旋转，而 URDF 中为绕 +Y 旋转，
+    # 因此需要对 joint2 与 joint3 取反。
+    return [
+        float(angles[0]),
+        float(_wrap_to_pi(-angles[1])),
+        float(_wrap_to_pi(-angles[2])),
+    ]

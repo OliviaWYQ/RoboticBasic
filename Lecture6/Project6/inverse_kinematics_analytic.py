@@ -88,5 +88,7 @@ def inverse_kinematics(position):
     #       = joint3 - first_offset，因此 joint3 = delta + first_offset。
     joint3 = delta + first_offset
 
-    # 第 7 步：返回弧度制关节角，并统一到 [-pi, pi) 范围。
-    return [_wrap_to_pi(joint1), _wrap_to_pi(joint2), _wrap_to_pi(joint3)]
+    # 第 7 步：将 IK 内部坐标系中的关节角转换为 URDF 坐标系。
+    # 内部模型将 shoulder/elbow 视为绕 -Y 旋转，而 URDF 中为绕 +Y 旋转，
+    # 因此需要取反 joint2 与 joint3。返回弧度制关节角，并统一到 [-pi, pi) 范围。
+    return [_wrap_to_pi(joint1), _wrap_to_pi(-joint2), _wrap_to_pi(-joint3)]

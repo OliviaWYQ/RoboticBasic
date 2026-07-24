@@ -80,14 +80,17 @@ class Turtlebot(Node):
     def prepare_next_segment(self):
         """计算下一段 x(t)、y(t) 的三次多项式系数。"""
 
-        # 没有剩余路标点时，发布零速度并停止定时器。
+        # 没有剩余路标点时，发布零速度、停止定时器、保存轨迹并退出。
         if self.segment_index >= len(self.waypoints):
             self.coefficients = None
             self.finished = True
             self.stop()
             if hasattr(self, 'timer'):
                 self.timer.cancel()
-            return
+            self.save_trajectory()
+            self.get_logger().info("All waypoints completed. Exiting...")
+            self.destroy_node()
+            rclpy.shutdown()
 
         # 当前段从 previous_waypoint 运动到 target。
         target = np.asarray(self.waypoints[self.segment_index], dtype=float)
@@ -276,10 +279,16 @@ def main(args=None):
     except KeyboardInterrupt:
         print("Ctrl + C detected. Exiting...")
     finally:
-        # 无论正常结束还是 Ctrl+C，都先停车、保存轨迹，再释放 ROS 资源。
-        turtlebot.stop()
+        # 无论正常结束还是 Ctrl+C，先保存轨迹，再尝试停车。
         turtlebot.save_trajectory()
-        turtlebot.destroy_node()
+        try:
+            turtlebot.stop()
+        except Exception:
+            pass
+        try:
+            turtlebot.destroy_node()
+        except Exception:
+            pass
         rclpy.shutdown()
 
 
